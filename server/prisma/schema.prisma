@@ -1,0 +1,201 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Trip {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  startDate     DateTime
+  endDate       DateTime
+  homeCurrency  String   @default("USD")
+  exchangeRate  Float    @default(33.0) // THB per home currency
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  days           Day[]
+  accommodations Accommodation[]
+  activities     Activity[]
+  budgetItems    BudgetItem[]
+  transports     Transport[]
+  packingItems   PackingItem[]
+  documents      Document[]
+  notes          Note[]
+  destinations   Destination[]
+}
+
+model Destination {
+  id        String @id @default(uuid())
+  tripId    String
+  name      String
+  country   String @default("Thailand")
+  lat       Float?
+  lng       Float?
+  sortOrder Int    @default(0)
+
+  trip       Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  days       Day[]
+  activities Activity[]
+  accommodations Accommodation[]
+}
+
+model Day {
+  id            String   @id @default(uuid())
+  tripId        String
+  destinationId String?
+  date          DateTime
+  dayNumber     Int
+  title         String?
+  notes         String?
+  sortOrder     Int      @default(0)
+
+  trip        Trip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destination Destination? @relation(fields: [destinationId], references: [id])
+  activities  Activity[]
+}
+
+model Accommodation {
+  id                String   @id @default(uuid())
+  tripId            String
+  destinationId     String?
+  name              String
+  type              String   @default("hotel") // hotel, hostel, airbnb, resort
+  address           String?
+  lat               Float?
+  lng               Float?
+  checkIn           DateTime
+  checkOut          DateTime
+  pricePerNight     Float
+  totalCost         Float
+  currency          String   @default("THB")
+  bookingLink       String?
+  confirmationCode  String?
+  roomType          String?
+  notes             String?
+  isBooked          Boolean  @default(false)
+  rating            Int?     // 1-5
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  trip        Trip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destination Destination? @relation(fields: [destinationId], references: [id])
+}
+
+model Activity {
+  id            String   @id @default(uuid())
+  tripId        String
+  destinationId String?
+  dayId         String?
+  name          String
+  category      String   @default("sightseeing") // temple, beach, restaurant, tour, market, shopping, nightlife, nature, culture
+  description   String?
+  estimatedCost Float?
+  currency      String   @default("THB")
+  duration      String?  // e.g. "2 hours"
+  address       String?
+  lat           Float?
+  lng           Float?
+  priority      String   @default("nice-to-have") // must-do, nice-to-have
+  interestP1    Int      @default(0) // partner 1 interest 0-5
+  interestP2    Int      @default(0) // partner 2 interest 0-5
+  notes         String?
+  isCompleted   Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  startTime     String?  // e.g. "09:00"
+  endTime       String?  // e.g. "11:00"
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  trip        Trip         @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  destination Destination? @relation(fields: [destinationId], references: [id])
+  day         Day?         @relation(fields: [dayId], references: [id])
+}
+
+model BudgetItem {
+  id          String   @id @default(uuid())
+  tripId      String
+  category    String   // flights, accommodation, food, transport, activities, shopping, emergency
+  description String
+  planned     Float    @default(0)
+  actual      Float    @default(0)
+  currency    String   @default("THB")
+  date        DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+model Transport {
+  id               String   @id @default(uuid())
+  tripId           String
+  type             String   // flight, train, ferry, bus, taxi, private-transfer
+  fromLocation     String
+  toLocation       String
+  departureDate    DateTime
+  departureTime    String?
+  arrivalDate      DateTime?
+  arrivalTime      String?
+  operator         String?  // airline, train company
+  confirmationCode String?
+  price            Float?
+  currency         String   @default("THB")
+  seatInfo         String?
+  notes            String?
+  isBooked         Boolean  @default(false)
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+model PackingItem {
+  id        String  @id @default(uuid())
+  tripId    String
+  category  String  // documents, clothes, toiletries, electronics, beach, medicine, misc
+  name      String
+  isPacked  Boolean @default(false)
+  packedBy  String? // partner 1 or 2
+  quantity  Int     @default(1)
+  notes     String?
+  sortOrder Int     @default(0)
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  tripId      String
+  name        String
+  type        String   // passport, visa, insurance, vaccination, booking, other
+  fileName    String?
+  filePath    String?
+  mimeType    String?
+  fileSize    Int?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}
+
+model Note {
+  id        String   @id @default(uuid())
+  tripId    String
+  title     String
+  content   String
+  category  String   @default("general") // general, restaurant, phrase, tip, emergency
+  isPinned  Boolean  @default(false)
+  color     String?  // for visual organization
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+}

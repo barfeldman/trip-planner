@@ -1,0 +1,18 @@
+services:
+  trip-planner:
+    build: .
+    ports:
+      - "3001:3001"
+    volumes:
+      - trip-data:/app/data
+      - trip-uploads:/app/uploads
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/trip-planner.db
+      - UPLOAD_DIR=/app/uploads
+      - PORT=3001
+    restart: unless-stopped
+
+volumes:
+  trip-data:
+  trip-uploads:
