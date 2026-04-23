@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -13,15 +14,17 @@ import { PackingList } from '@/pages/PackingList';
 import { Documents } from '@/pages/Documents';
 import { MapView } from '@/pages/MapView';
 import { Notes } from '@/pages/Notes';
+import { TripForm } from '@/pages/TripForm';
 
 export default function App() {
   const { t } = useI18n();
+  const [showCreate, setShowCreate] = useState(false);
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+
   const { data: trips, isLoading } = useQuery({
     queryKey: ['trips'],
     queryFn: api.getTrips,
   });
-
-  const tripId = trips?.[0]?.id;
 
   if (isLoading) {
     return (
@@ -34,16 +37,24 @@ export default function App() {
     );
   }
 
-  if (!tripId) {
+  // No trips - show welcome + create
+  if (!trips || trips.length === 0 || showCreate) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--background))]">
-        <p className="text-lg">{t('app.noTrips')}</p>
-      </div>
+      <TripForm onDone={() => setShowCreate(false)} />
     );
   }
 
+  const tripId = selectedTripId && trips.find((t: any) => t.id === selectedTripId)
+    ? selectedTripId
+    : trips[0].id;
+
   return (
-    <Layout tripId={tripId}>
+    <Layout
+      tripId={tripId}
+      trips={trips}
+      onSelectTrip={setSelectedTripId}
+      onCreateTrip={() => setShowCreate(true)}
+    >
       <Routes>
         <Route path="/" element={<Dashboard tripId={tripId} />} />
         <Route path="/itinerary" element={<Itinerary tripId={tripId} />} />

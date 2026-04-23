@@ -6,7 +6,7 @@ import { useI18n } from '@/lib/i18n';
 import {
   LayoutDashboard, CalendarDays, Hotel, MapPin, Wallet,
   Plane, CheckSquare, FileText, Map, StickyNote, Sun, Moon,
-  Menu, X, ChevronRight, Languages
+  Menu, X, ChevronRight, Languages, Plus, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -24,9 +24,18 @@ const navItems = [
   { to: '/notes', icon: StickyNote, labelKey: 'nav.notes' as const },
 ];
 
-export function Layout({ children, tripId }: { children: React.ReactNode; tripId: string }) {
+interface LayoutProps {
+  children: React.ReactNode;
+  tripId: string;
+  trips?: any[];
+  onSelectTrip?: (id: string) => void;
+  onCreateTrip?: () => void;
+}
+
+export function Layout({ children, tripId, trips, onSelectTrip, onCreateTrip }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [tripMenuOpen, setTripMenuOpen] = useState(false);
   const { t, locale, setLocale } = useI18n();
   const [dark, setDark] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -75,18 +84,67 @@ export function Layout({ children, tripId }: { children: React.ReactNode; tripId
         <div className="gradient-bar h-1 w-full rounded-b-full" />
 
         {/* Header */}
-        <div className="p-4 pb-3 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-saffron-400 to-saffron-600 flex items-center justify-center flex-shrink-0 shadow-lg">
-            <span className="text-xl">🌴</span>
-          </div>
-          {sidebarOpen && (
-            <div className="min-w-0 animate-fade-up">
-              <h1 className="font-bold text-sm truncate text-[hsl(var(--foreground))]">
-                {trip?.name || 'Trip Planner'}
-              </h1>
-              <p className="text-[11px] text-[hsl(var(--muted-foreground))] truncate">
-                {t('app.thailandTrip')}
-              </p>
+        <div className="p-4 pb-3">
+          <button
+            onClick={() => sidebarOpen && setTripMenuOpen(!tripMenuOpen)}
+            className={cn(
+              'flex items-center gap-3 w-full rounded-xl transition-colors',
+              sidebarOpen && 'hover:bg-[hsl(var(--accent))] p-1 -m-1 cursor-pointer'
+            )}
+          >
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-saffron-400 to-saffron-600 flex items-center justify-center flex-shrink-0 shadow-lg">
+              <span className="text-xl">✈️</span>
+            </div>
+            {sidebarOpen && (
+              <div className="min-w-0 flex-1 text-start animate-fade-up">
+                <h1 className="font-bold text-sm truncate text-[hsl(var(--foreground))]">
+                  {trip?.name || t('app.tripPlanner')}
+                </h1>
+                <p className="text-[11px] text-[hsl(var(--muted-foreground))] truncate">
+                  {t('app.tripPlanner')}
+                </p>
+              </div>
+            )}
+            {sidebarOpen && trips && trips.length > 0 && (
+              <ChevronDown className={cn(
+                'h-3.5 w-3.5 text-[hsl(var(--muted-foreground))] transition-transform',
+                tripMenuOpen && 'rotate-180'
+              )} />
+            )}
+          </button>
+
+          {/* Trip switcher dropdown */}
+          {tripMenuOpen && sidebarOpen && (
+            <div className="mt-2 p-1 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-lg animate-fade-up">
+              {trips?.map((tr: any) => (
+                <button
+                  key={tr.id}
+                  onClick={() => {
+                    onSelectTrip?.(tr.id);
+                    setTripMenuOpen(false);
+                  }}
+                  className={cn(
+                    'w-full text-start px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer',
+                    tr.id === tripId
+                      ? 'bg-saffron-500/10 text-saffron-700 dark:text-saffron-400 font-medium'
+                      : 'hover:bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]'
+                  )}
+                >
+                  {tr.name}
+                </button>
+              ))}
+              <div className="border-t border-[hsl(var(--border))] mt-1 pt-1">
+                <button
+                  onClick={() => {
+                    onCreateTrip?.();
+                    setTripMenuOpen(false);
+                  }}
+                  className="w-full text-start px-3 py-2 rounded-lg text-sm hover:bg-[hsl(var(--accent))] transition-colors flex items-center gap-2 text-ocean-600 dark:text-ocean-400 cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {t('trip.createTrip')}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -190,10 +248,10 @@ export function Layout({ children, tripId }: { children: React.ReactNode; tripId
             <Menu className="h-5 w-5" />
           </button>
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-saffron-400 to-saffron-600 flex items-center justify-center">
-            <span className="text-base">🌴</span>
+            <span className="text-base">✈️</span>
           </div>
-          <span className="font-semibold text-sm text-saffron-700 dark:text-saffron-400">
-            {t('app.thailandTrip')}
+          <span className="font-semibold text-sm text-saffron-700 dark:text-saffron-400 truncate">
+            {trip?.name || t('app.tripPlanner')}
           </span>
         </div>
 

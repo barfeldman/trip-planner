@@ -17,8 +17,38 @@ const translations = {
 
   // App
   'app.loading': { he: '...טוען את ההרפתקה שלכם', en: 'Loading your adventure...' },
-  'app.noTrips': { he: 'לא נמצאו טיולים. הריצו את סקריפט ה-seed כדי להתחיל!', en: 'No trips found. Run the seed script to get started!' },
+  'app.noTrips': { he: 'עדיין אין טיולים מתוכננים', en: 'No trips planned yet' },
   'app.thailandTrip': { he: 'הרפתקה בתאילנד', en: 'Thailand Adventure' },
+  'app.tripPlanner': { he: 'מתכנן טיולים', en: 'Trip Planner' },
+
+  // Trip management
+  'trip.createTrip': { he: 'צור טיול חדש', en: 'Create New Trip' },
+  'trip.editTrip': { he: 'ערוך טיול', en: 'Edit Trip' },
+  'trip.deleteTrip': { he: 'מחק טיול', en: 'Delete Trip' },
+  'trip.deleteConfirm': { he: 'למחוק את הטיול? כל המידע יימחק.', en: 'Delete this trip? All data will be lost.' },
+  'trip.tripName': { he: 'שם הטיול', en: 'Trip Name' },
+  'trip.tripNamePlaceholder': { he: 'למשל, חופשה ביוון 🇬🇷', en: 'e.g., Greece Vacation 🇬🇷' },
+  'trip.description': { he: 'תיאור', en: 'Description' },
+  'trip.descPlaceholder': { he: 'ספרו על הטיול...', en: 'Tell us about your trip...' },
+  'trip.startDate': { he: 'תאריך התחלה', en: 'Start Date' },
+  'trip.endDate': { he: 'תאריך סיום', en: 'End Date' },
+  'trip.homeCurrency': { he: 'מטבע בית', en: 'Home Currency' },
+  'trip.destCurrency': { he: 'מטבע יעד', en: 'Destination Currency' },
+  'trip.exchangeRate': { he: 'שער חליפין', en: 'Exchange Rate' },
+  'trip.exchangeHelp': { he: 'כמה יחידות מטבע יעד = 1 מטבע בית', en: 'How many destination currency units = 1 home currency' },
+  'trip.destinations': { he: 'יעדים', en: 'Destinations' },
+  'trip.addDestination': { he: 'הוסף יעד', en: 'Add Destination' },
+  'trip.destName': { he: 'שם היעד', en: 'Destination Name' },
+  'trip.destNamePlaceholder': { he: 'למשל, אתונה', en: 'e.g., Athens' },
+  'trip.country': { he: 'מדינה', en: 'Country' },
+  'trip.countryPlaceholder': { he: 'למשל, יוון', en: 'e.g., Greece' },
+  'trip.createBtn': { he: 'צור טיול', en: 'Create Trip' },
+  'trip.saveBtn': { he: 'שמור שינויים', en: 'Save Changes' },
+  'trip.welcome': { he: '!ברוכים הבאים למתכנן הטיולים', en: 'Welcome to Trip Planner!' },
+  'trip.welcomeHint': { he: 'צרו את הטיול הראשון שלכם כדי להתחיל לתכנן', en: 'Create your first trip to start planning' },
+  'trip.myTrips': { he: 'הטיולים שלי', en: 'My Trips' },
+  'trip.switchTrip': { he: 'החלף טיול', en: 'Switch Trip' },
+  'trip.generating': { he: '...מייצר ימים', en: 'Generating days...' },
 
   // Dashboard
   'dash.daysToGo': { he: 'ימים נותרו', en: 'days to go' },
@@ -132,7 +162,7 @@ const translations = {
   'pack.itemsPacked': { he: 'פריטים נארזו', en: 'items packed' },
   'pack.addItem': { he: 'הוסף פריט', en: 'Add Item' },
   'pack.progress': { he: 'התקדמות אריזה', en: 'Packing Progress' },
-  'pack.allPacked': { he: '🎉 הכל ארוז! מוכנים לתאילנד!', en: '🎉 All packed! Ready for Thailand!' },
+  'pack.allPacked': { he: '🎉 הכל ארוז! מוכנים לצאת!', en: '🎉 All packed! Ready to go!' },
   'pack.addPackingItem': { he: 'הוסף פריט לאריזה', en: 'Add Packing Item' },
   'pack.itemName': { he: 'שם הפריט', en: 'Item Name' },
   'pack.documents': { he: 'מסמכים', en: 'Documents' },
@@ -163,7 +193,7 @@ const translations = {
 
   // Map
   'map.title': { he: 'תצוגת מפה', en: 'Map View' },
-  'map.subtitle': { he: 'מסלול תאילנד ונקודות עניין', en: 'Your Thailand route and points of interest' },
+  'map.subtitle': { he: 'המסלול שלכם ונקודות עניין', en: 'Your route and points of interest' },
   'map.destinations': { he: 'יעדים', en: 'Destinations' },
   'map.accommodations': { he: 'לינה', en: 'Accommodations' },
   'map.activities': { he: 'פעילויות', en: 'Activities' },
@@ -187,7 +217,7 @@ const translations = {
   'notes.showLess': { he: 'הצג פחות', en: 'Show less' },
   'notes.showMore': { he: 'הצג עוד', en: 'Show more' },
   'notes.noNotes': { he: 'עדיין אין הערות', en: 'No notes yet' },
-  'notes.noNotesHint': { he: 'הוסיפו רעיונות למסעדות, ביטויים בתאית, טיפים...', en: 'Add restaurant ideas, Thai phrases, travel tips...' },
+  'notes.noNotesHint': { he: 'הוסיפו רעיונות למסעדות, ביטויים מקומיים, טיפים...', en: 'Add restaurant ideas, local phrases, travel tips...' },
 
   // Form common
   'form.name': { he: 'שם', en: 'Name' },
