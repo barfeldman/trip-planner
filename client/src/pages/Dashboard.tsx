@@ -26,8 +26,6 @@ export function Dashboard({ tripId }: { tripId: string }) {
     queryFn: () => api.getBudgetSummary(tripId),
   });
 
-  if (!trip) return null;
-
   const deleteTrip = useMutation({
     mutationFn: () => api.deleteTrip(tripId),
     onSuccess: () => {
@@ -35,6 +33,8 @@ export function Dashboard({ tripId }: { tripId: string }) {
       setShowDeleteConfirm(false);
     },
   });
+
+  if (!trip) return null;
 
   if (showEdit) {
     return <TripForm trip={trip} onDone={() => setShowEdit(false)} />;
