@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { formatDate, categoryIcon } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
-import { Plus, GripVertical, MapPin, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, GripVertical, Clock, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 
 export function Itinerary({ tripId }: { tripId: string }) {
   const { t } = useI18n();
@@ -31,16 +31,43 @@ export function Itinerary({ tripId }: { tripId: string }) {
     },
   });
 
+  const deleteActivity = useMutation({
+    mutationFn: (id: string) => api.deleteActivity(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['trip', tripId] }),
+  });
+
   if (!trip) return null;
 
-  const days = trip.days || [];
-  const destinations = trip.destinations || [];
+  const days: any[] = trip.days || [];
+  const destinations: any[] = trip.destinations || [];
 
-  // Group days by destination
-  const daysByDest = destinations.map((dest: any) => ({
-    destination: dest,
-    days: days.filter((d: any) => d.destinationId === dest.id),
-  }));
+  // Group days: first unassigned, then by destination
+  const assignedIds = new Set(days.filter((d) => d.destinationId).map((d) => d.id));
+  const unassignedDays = days.filter((d) => !d.destinationId);
+
+  const groups: { label: string; color: string; days: any[] }[] = [];
+
+  if (unassignedDays.length > 0) {
+    groups.push({ label: trip.name, color: 'from-saffron-400 to-saffron-600', days: unassignedDays });
+  }
+
+  destinations.forEach((dest: any, i: number) => {
+    const destDays = days.filter((d) => d.destinationId === dest.id);
+    if (destDays.length > 0) {
+      const colors = [
+        'from-saffron-400 to-temple-500',
+        'from-ocean-400 to-ocean-600',
+        'from-rose-400 to-rose-600',
+        'from-emerald-400 to-emerald-600',
+      ];
+      groups.push({ label: dest.name, color: colors[i % colors.length], days: destDays });
+    }
+  });
+
+  // Fallback: if no groups at all, still show all days flat
+  if (groups.length === 0 && days.length > 0) {
+    groups.push({ label: trip.name, color: 'from-saffron-400 to-saffron-600', days });
+  }
 
   return (
     <div className="space-y-6">
@@ -51,20 +78,29 @@ export function Itinerary({ tripId }: { tripId: string }) {
         </div>
       </div>
 
-      {daysByDest.map(({ destination, days: destDays }: any) => (
-        <div key={destination.id} className="space-y-3">
+      {days.length === 0 && (
+        <Card>
+          <CardContent className="py-12 text-center text-[hsl(var(--muted-foreground))]">
+            <p className="text-4xl mb-3">📅</p>
+            <p>{t('app.noTrips')}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {groups.map(({ label, color, days: groupDays }) => (
+        <div key={label} className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-saffron-400 to-temple-500 flex items-center justify-center text-white text-xs font-bold">
-              {destination.sortOrder + 1}
+            <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+              ✈
             </div>
-            <h3 className="font-display text-lg font-semibold">{destination.name}</h3>
-            <Badge variant="secondary"><span className="num-ltr">{destDays.length}</span> {t('dash.days')}</Badge>
+            <h3 className="font-display text-lg font-semibold">{label}</h3>
+            <Badge variant="secondary"><span className="num-ltr">{groupDays.length}</span> {t('dash.days')}</Badge>
           </div>
 
           <div className="ml-4 border-l-2 border-saffron-200 dark:border-saffron-800 pl-6 space-y-3">
-            {destDays.map((day: any) => {
+            {groupDays.map((day: any) => {
               const isExpanded = expandedDay === day.id;
-              const dayActivities = day.activities || [];
+              const dayActivities: any[] = day.activities || [];
 
               return (
                 <Card key={day.id} className="overflow-hidden">
@@ -84,6 +120,15 @@ export function Itinerary({ tripId }: { tripId: string }) {
                       {dayActivities.length > 0 && (
                         <Badge variant="outline" className="text-[10px]"><span className="num-ltr">{dayActivities.length}</span> {t('itin.activities')}</Badge>
                       )}
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-saffron-500 hover:text-saffron-700 hover:bg-saffron-50 dark:hover:bg-saffron-500/10"
+                        onClick={(e) => { e.stopPropagation(); setShowAddActivity(day.id); }}
+                        title={t('itin.addActivity')}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                     </div>
                   </button>
@@ -95,6 +140,11 @@ export function Itinerary({ tripId }: { tripId: string }) {
                       )}
 
                       <div className="space-y-2">
+                        {dayActivities.length === 0 && (
+                          <p className="text-sm text-[hsl(var(--muted-foreground))] text-center py-3">
+                            {t('itin.addActivity')} ↑
+                          </p>
+                        )}
                         {dayActivities.map((activity: any) => (
                           <div
                             key={activity.id}
@@ -120,24 +170,15 @@ export function Itinerary({ tripId }: { tripId: string }) {
                                 {activity.estimatedCost > 0 && <span>฿{activity.estimatedCost}</span>}
                               </div>
                             </div>
-                            <div className="flex gap-1">
-                              <span className="text-xs" title="Your interest">
-                                {'⭐'.repeat(Math.min(activity.interestP1, 5))}
-                              </span>
-                            </div>
+                            <button
+                              onClick={() => deleteActivity.mutate(activity.id)}
+                              className="opacity-0 group-hover:opacity-100 p-1 rounded text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-all cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                       </div>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-3 w-full text-[hsl(var(--muted-foreground))]"
-                        onClick={() => setShowAddActivity(day.id)}
-                      >
-                        <Plus className="h-4 w-4" />
-                        {t('itin.addActivity')}
-                      </Button>
                     </CardContent>
                   )}
                 </Card>
@@ -172,12 +213,12 @@ export function Itinerary({ tripId }: { tripId: string }) {
           >
             <div>
               <Label htmlFor="name">{t('itin.activityName')}</Label>
-              <Input id="name" name="name" required />
+              <Input id="name" name="name" required autoFocus className="mt-1" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="category">{t('form.category')}</Label>
-                <select name="category" id="category" className="flex h-10 w-full rounded-xl border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
+                <select name="category" id="category" className="mt-1 flex h-10 w-full rounded-lg border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
                   <option value="sightseeing">{t('cat.sightseeing')}</option>
                   <option value="temple">{t('cat.temple')}</option>
                   <option value="beach">{t('cat.beach')}</option>
@@ -192,7 +233,7 @@ export function Itinerary({ tripId }: { tripId: string }) {
               </div>
               <div>
                 <Label htmlFor="priority">{t('form.priority')}</Label>
-                <select name="priority" id="priority" className="flex h-10 w-full rounded-xl border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
+                <select name="priority" id="priority" className="mt-1 flex h-10 w-full rounded-lg border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
                   <option value="nice-to-have">{t('itin.niceTohave')}</option>
                   <option value="must-do">{t('itin.mustDoLabel')}</option>
                 </select>
@@ -201,16 +242,16 @@ export function Itinerary({ tripId }: { tripId: string }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="cost">{t('form.estimatedCost')}</Label>
-                <Input id="cost" name="cost" type="number" defaultValue="0" />
+                <Input id="cost" name="cost" type="number" defaultValue="0" className="mt-1" />
               </div>
               <div>
                 <Label htmlFor="duration">{t('form.duration')}</Label>
-                <Input id="duration" name="duration" placeholder={t('form.durationPlaceholder')} />
+                <Input id="duration" name="duration" placeholder={t('form.durationPlaceholder')} className="mt-1" />
               </div>
             </div>
             <div>
               <Label htmlFor="notes">{t('form.notes')}</Label>
-              <Textarea id="notes" name="notes" rows={2} />
+              <Textarea id="notes" name="notes" rows={2} className="mt-1" />
             </div>
             <Button type="submit" className="w-full" disabled={addActivity.isPending}>
               {addActivity.isPending ? t('action.adding') : t('itin.addActivity')}
