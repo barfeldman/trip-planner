@@ -258,6 +258,17 @@ const translations = {
   'form.estimatedCost': { he: 'עלות משוערת (THB)', en: 'Estimated Cost (THB)' },
   'form.notesPlaceholder': { he: 'הערות נוספות...', en: 'Additional notes...' },
 
+  // Login
+  'login.subtitle': { he: 'ברוכים הבאים! התחברו כדי להמשיך', en: 'Welcome back! Sign in to continue' },
+  'login.username': { he: 'שם משתמש', en: 'Username' },
+  'login.usernamePlaceholder': { he: 'הכניסו שם משתמש', en: 'Enter username' },
+  'login.password': { he: 'סיסמה', en: 'Password' },
+  'login.passwordPlaceholder': { he: 'הכניסו סיסמה', en: 'Enter password' },
+  'login.signIn': { he: 'כניסה', en: 'Sign In' },
+  'login.error': { he: 'שם משתמש או סיסמה שגויים', en: 'Incorrect username or password' },
+  'login.greeting': { he: 'שלום', en: 'Hello' },
+  'login.logout': { he: 'התנתק', en: 'Log out' },
+
   // Actions
   'action.saving': { he: '...שומר', en: 'Saving...' },
   'action.adding': { he: '...מוסיף', en: 'Adding...' },

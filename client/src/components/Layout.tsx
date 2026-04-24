@@ -6,10 +6,11 @@ import { useI18n } from '@/lib/i18n';
 import {
   LayoutDashboard, CalendarDays, Hotel, MapPin, Wallet,
   Plane, CheckSquare, FileText, Map, StickyNote, Sun, Moon,
-  Menu, X, ChevronRight, Languages, Plus, ChevronDown
+  Menu, X, ChevronRight, Languages, Plus, ChevronDown, LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
+import { useAuth } from '@/lib/auth';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, labelKey: 'nav.dashboard' as const },
@@ -37,6 +38,7 @@ export function Layout({ children, tripId, trips, onSelectTrip, onCreateTrip }: 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tripMenuOpen, setTripMenuOpen] = useState(false);
   const { t, locale, setLocale } = useI18n();
+  const { user, logout } = useAuth();
   const [dark, setDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark';
@@ -222,6 +224,30 @@ export function Layout({ children, tripId, trips, onSelectTrip, onCreateTrip }: 
                 )}
               </button>
             </div>
+          )}
+
+          {/* User + logout */}
+          {sidebarOpen ? (
+            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[hsl(var(--accent))]/50">
+              <span className="text-xs font-medium text-[hsl(var(--foreground))]">
+                {t('login.greeting')}, {user}
+              </span>
+              <button
+                onClick={logout}
+                title={t('login.logout')}
+                className="text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors cursor-pointer"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={logout}
+              title={t('login.logout')}
+              className="flex items-center justify-center w-full p-2 rounded-xl hover:bg-[hsl(var(--accent))] transition-colors text-[hsl(var(--muted-foreground))] hover:text-red-500 cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           )}
 
           <button
