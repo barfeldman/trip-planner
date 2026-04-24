@@ -26,6 +26,11 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.resolve(UPLOAD_DIR)));
 
+// Health check
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // API routes
 app.use('/api/trips', tripRoutes);
 app.use('/api/days', dayRoutes);
