@@ -6,7 +6,8 @@ import { useI18n } from '@/lib/i18n';
 import {
   LayoutDashboard, CalendarDays, Hotel, MapPin, Wallet,
   Plane, CheckSquare, FileText, Map, StickyNote, Sun, Moon,
-  Menu, X, ChevronRight, Languages, Plus, ChevronDown, LogOut
+  Menu, X, ChevronRight, Languages, Plus, ChevronDown, LogOut,
+  Pencil, Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
@@ -31,9 +32,11 @@ interface LayoutProps {
   trips?: any[];
   onSelectTrip?: (id: string) => void;
   onCreateTrip?: () => void;
+  onEditTrip?: (id: string) => void;
+  onDeleteTrip?: (id: string) => void;
 }
 
-export function Layout({ children, tripId, trips, onSelectTrip, onCreateTrip }: LayoutProps) {
+export function Layout({ children, tripId, trips, onSelectTrip, onCreateTrip, onEditTrip, onDeleteTrip }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [tripMenuOpen, setTripMenuOpen] = useState(false);
@@ -119,21 +122,39 @@ export function Layout({ children, tripId, trips, onSelectTrip, onCreateTrip }: 
           {tripMenuOpen && sidebarOpen && (
             <div className="mt-2 p-1 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] shadow-lg animate-fade-up">
               {trips?.map((tr: any) => (
-                <button
+                <div
                   key={tr.id}
-                  onClick={() => {
-                    onSelectTrip?.(tr.id);
-                    setTripMenuOpen(false);
-                  }}
                   className={cn(
-                    'w-full text-start px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer',
-                    tr.id === tripId
-                      ? 'bg-saffron-500/10 text-saffron-700 dark:text-saffron-400 font-medium'
-                      : 'hover:bg-[hsl(var(--accent))] text-[hsl(var(--foreground))]'
+                    'flex items-center gap-0.5 rounded-lg',
+                    tr.id === tripId ? 'bg-saffron-500/10' : 'hover:bg-[hsl(var(--accent))]'
                   )}
                 >
-                  {tr.name}
-                </button>
+                  <button
+                    onClick={() => { onSelectTrip?.(tr.id); setTripMenuOpen(false); }}
+                    className={cn(
+                      'flex-1 text-start px-3 py-2 text-sm transition-colors cursor-pointer truncate',
+                      tr.id === tripId
+                        ? 'text-saffron-700 dark:text-saffron-400 font-medium'
+                        : 'text-[hsl(var(--foreground))]'
+                    )}
+                  >
+                    {tr.name}
+                  </button>
+                  <button
+                    onClick={() => { onEditTrip?.(tr.id); setTripMenuOpen(false); }}
+                    className="p-1.5 rounded text-[hsl(var(--muted-foreground))] hover:text-ocean-500 transition-colors cursor-pointer flex-shrink-0"
+                    title={t('trip.editTrip')}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                  <button
+                    onClick={() => { setTripMenuOpen(false); onDeleteTrip?.(tr.id); }}
+                    className="p-1.5 me-1 rounded text-[hsl(var(--muted-foreground))] hover:text-red-500 transition-colors cursor-pointer flex-shrink-0"
+                    title={t('trip.deleteTrip')}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </div>
               ))}
               <div className="border-t border-[hsl(var(--border))] mt-1 pt-1">
                 <button

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/auth';
@@ -21,13 +21,23 @@ import { TripForm } from '@/pages/TripForm';
 export default function App() {
   const { t } = useI18n();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
+  const [editingTripId, setEditingTripId] = useState<string | null>(null);
 
   const { data: trips, isLoading } = useQuery({
     queryKey: ['trips'],
     queryFn: api.getTrips,
     enabled: !!user,
+  });
+
+  const deleteTrip = useMutation({
+    mutationFn: (id: string) => api.deleteTrip(id),
+    onSuccess: (_, deletedId) => {
+      if (selectedTripId === deletedId) setSelectedTripId(null);
+      queryClient.invalidateQueries({ queryKey: ['trips'] });
+    },
   });
 
   if (!user) return <Login />;
@@ -43,14 +53,18 @@ export default function App() {
     );
   }
 
-  // No trips - show welcome + create
   if (!trips || trips.length === 0 || showCreate) {
-    return (
-      <TripForm onDone={() => setShowCreate(false)} />
-    );
+    return <TripForm onDone={() => setShowCreate(false)} />;
   }
 
-  const tripId = selectedTripId && trips.find((t: any) => t.id === selectedTripId)
+  if (editingTripId) {
+    const tripToEdit = trips.find((tr: any) => tr.id === editingTripId);
+    if (tripToEdit) {
+      return <TripForm trip={tripToEdit} onDone={() => setEditingTripId(null)} />;
+    }
+  }
+
+  const tripId = selectedTripId && trips.find((tr: any) => tr.id === selectedTripId)
     ? selectedTripId
     : trips[0].id;
 
@@ -60,6 +74,12 @@ export default function App() {
       trips={trips}
       onSelectTrip={setSelectedTripId}
       onCreateTrip={() => setShowCreate(true)}
+      onEditTrip={setEditingTripId}
+      onDeleteTrip={(id) => {
+        if (window.confirm(t('trip.deleteConfirm'))) {
+          deleteTrip.mutate(id);
+        }
+      }}
     >
       <Routes>
         <Route path="/" element={<Dashboard tripId={tripId} />} />
