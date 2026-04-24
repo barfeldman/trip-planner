@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/lib/auth';
+import { Login } from '@/pages/Login';
 import { Layout } from '@/components/Layout';
 import { Dashboard } from '@/pages/Dashboard';
 import { Itinerary } from '@/pages/Itinerary';
@@ -18,13 +20,17 @@ import { TripForm } from '@/pages/TripForm';
 
 export default function App() {
   const { t } = useI18n();
+  const { user } = useAuth();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
 
   const { data: trips, isLoading } = useQuery({
     queryKey: ['trips'],
     queryFn: api.getTrips,
+    enabled: !!user,
   });
+
+  if (!user) return <Login />;
 
   if (isLoading) {
     return (
