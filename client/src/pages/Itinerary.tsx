@@ -103,8 +103,15 @@ export function Itinerary({ tripId }: { tripId: string }) {
     groups.push({ label: trip.name, color: 'from-saffron-400 to-saffron-600', days: unassignedDays });
   }
 
-  destinations.forEach((dest: any, i: number) => {
-    const destDays = days.filter((d) => d.destinationId === dest.id);
+  const sortedDestinations = [...destinations].sort((a: any, b: any) => {
+    const aMin = Math.min(...days.filter((d) => d.destinationId === a.id).map((d) => d.dayNumber), Infinity);
+    const bMin = Math.min(...days.filter((d) => d.destinationId === b.id).map((d) => d.dayNumber), Infinity);
+    return aMin - bMin;
+  });
+
+  sortedDestinations.forEach((dest: any, i: number) => {
+    const destDays = days.filter((d) => d.destinationId === dest.id)
+      .sort((a, b) => a.dayNumber - b.dayNumber);
     if (destDays.length > 0) {
       const colors = [
         'from-saffron-400 to-temple-500',
