@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { formatDate, categoryIcon } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
+import { CurrencyField } from '@/components/CurrencyField';
 import { Plus, GripVertical, Clock, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 
 export function Itinerary({ tripId }: { tripId: string }) {
@@ -17,6 +18,7 @@ export function Itinerary({ tripId }: { tripId: string }) {
   const queryClient = useQueryClient();
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [showAddActivity, setShowAddActivity] = useState<string | null>(null);
+  const [showAddAccom, setShowAddAccom] = useState<string | null>(null);
 
   const { data: trip } = useQuery({
     queryKey: ['trip', tripId],
@@ -36,13 +38,38 @@ export function Itinerary({ tripId }: { tripId: string }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['trip', tripId] }),
   });
 
+  const updateDay = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => api.updateDay(id, data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['trip', tripId] }),
+  });
+
+  const addAccommodation = useMutation({
+    mutationFn: (data: any) => api.createAccommodation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+      setShowAddAccom(null);
+    },
+  });
+
   if (!trip) return null;
 
   const days: any[] = trip.days || [];
   const destinations: any[] = trip.destinations || [];
+  const accommodations: any[] = trip.accommodations || [];
+
+  function getHotelForNight(day: any): any | null {
+    const d = new Date(day.date);
+    return accommodations.find((a: any) => {
+      const cin = new Date(a.checkIn);
+      const cout = new Date(a.checkOut);
+      cin.setHours(0, 0, 0, 0);
+      cout.setHours(0, 0, 0, 0);
+      d.setHours(0, 0, 0, 0);
+      return d >= cin && d < cout;
+    }) ?? null;
+  }
 
   // Group days: first unassigned, then by destination
-  const assignedIds = new Set(days.filter((d) => d.destinationId).map((d) => d.id));
   const unassignedDays = days.filter((d) => !d.destinationId);
 
   const groups: { label: string; color: string; days: any[] }[] = [];
@@ -104,40 +131,87 @@ export function Itinerary({ tripId }: { tripId: string }) {
 
               return (
                 <Card key={day.id} className="overflow-hidden">
-                  <button
-                    className="w-full text-left p-4 flex items-center gap-4 hover:bg-[hsl(var(--accent))]/50 transition-colors cursor-pointer"
-                    onClick={() => setExpandedDay(isExpanded ? null : day.id)}
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-saffron-50 dark:bg-saffron-500/10 flex flex-col items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-saffron-700">{t('itin.day')}</span>
-                      <span className="text-sm font-display font-bold text-saffron-600 -mt-0.5">{day.dayNumber}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium truncate">{day.title || `${t('itin.day')} ${day.dayNumber}`}</h4>
-                      <p className="text-xs text-[hsl(var(--muted-foreground))]">{formatDate(day.date)}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {dayActivities.length > 0 && (
-                        <Badge variant="outline" className="text-[10px]"><span className="num-ltr">{dayActivities.length}</span> {t('itin.activities')}</Badge>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-saffron-500 hover:text-saffron-700 hover:bg-saffron-50 dark:hover:bg-saffron-500/10"
-                        onClick={(e) => { e.stopPropagation(); setShowAddActivity(day.id); }}
-                        title={t('itin.addActivity')}
+                  <div className="flex items-center gap-2 px-4 py-3 hover:bg-[hsl(var(--accent))]/50 transition-colors border-b border-[hsl(var(--border))]">
+                    <button
+                      className="flex items-center gap-3 flex-1 text-start min-w-0"
+                      onClick={() => setExpandedDay(isExpanded ? null : day.id)}
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-saffron-50 dark:bg-saffron-500/10 flex flex-col items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-saffron-700">{t('itin.day')}</span>
+                        <span className="text-sm font-display font-bold text-saffron-600 -mt-0.5">{day.dayNumber}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-sm truncate">{day.title || `${t('itin.day')} ${day.dayNumber}`}</h4>
+                        <p className="text-xs text-[hsl(var(--muted-foreground))]">{formatDate(day.date)}</p>
+                      </div>
+                    </button>
+
+                    {/* City selector */}
+                    {destinations.length > 0 && (
+                      <select
+                        value={day.destinationId || ''}
+                        onChange={(e) => updateDay.mutate({ id: day.id, data: { destinationId: e.target.value || null } })}
+                        className="h-8 rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-2 text-xs cursor-pointer max-w-[120px]"
                       >
-                        <Plus className="h-4 w-4" />
-                      </Button>
+                        <option value="">{t('form.selectCity')}</option>
+                        {destinations.map((dest: any) => (
+                          <option key={dest.id} value={dest.id}>{dest.name}</option>
+                        ))}
+                      </select>
+                    )}
+
+                    {dayActivities.length > 0 && (
+                      <Badge variant="outline" className="text-[10px] flex-shrink-0">
+                        <span className="num-ltr">{dayActivities.length}</span> {t('itin.activities')}
+                      </Badge>
+                    )}
+
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="text-saffron-500 hover:text-saffron-700 hover:bg-saffron-50 dark:hover:bg-saffron-500/10 flex-shrink-0"
+                      onClick={() => setShowAddActivity(day.id)}
+                      title={t('itin.addActivity')}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+
+                    <button onClick={() => setExpandedDay(isExpanded ? null : day.id)} className="cursor-pointer flex-shrink-0">
                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </div>
-                  </button>
+                    </button>
+                  </div>
 
                   {isExpanded && (
                     <CardContent className="pt-0 pb-4 px-4">
                       {day.notes && (
                         <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4 italic">{day.notes}</p>
                       )}
+
+                      {/* Tonight's Stay */}
+                      {(() => {
+                        const hotel = getHotelForNight(day);
+                        return (
+                          <div className="mb-3">
+                            {hotel ? (
+                              <div className="flex items-center gap-2 p-2 rounded-lg bg-ocean-50/50 dark:bg-ocean-500/10 text-sm">
+                                <span>🏨</span>
+                                <span className="font-medium">{hotel.name}</span>
+                                <span className="text-xs text-[hsl(var(--muted-foreground))] capitalize">{hotel.type}</span>
+                                {hotel.isBooked && <Badge variant="secondary" className="text-[10px] ms-auto">✓ Booked</Badge>}
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setShowAddAccom(day.id)}
+                                className="flex items-center gap-2 p-2 rounded-lg border border-dashed border-[hsl(var(--border))] text-sm text-[hsl(var(--muted-foreground))] hover:border-saffron-300 hover:text-saffron-600 transition-colors w-full cursor-pointer"
+                              >
+                                <span>🏨</span>
+                                <span className="text-xs">Add tonight's stay</span>
+                                <Plus className="h-3 w-3 ms-auto" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       <div className="space-y-2">
                         {dayActivities.length === 0 && (
@@ -204,6 +278,7 @@ export function Itinerary({ tripId }: { tripId: string }) {
                 name: formData.get('name'),
                 category: formData.get('category'),
                 estimatedCost: parseFloat(formData.get('cost') as string) || 0,
+                currency: formData.get('cost_currency') as string || trip?.homeCurrency || 'ILS',
                 duration: formData.get('duration'),
                 priority: formData.get('priority'),
                 notes: formData.get('notes'),
@@ -240,10 +315,14 @@ export function Itinerary({ tripId }: { tripId: string }) {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="cost">{t('form.estimatedCost')}</Label>
-                <Input id="cost" name="cost" type="number" defaultValue="0" className="mt-1" />
-              </div>
+              <CurrencyField
+                label={t('form.estimatedCost')}
+                name="cost"
+                currencyName="cost_currency"
+                defaultValue={0}
+                defaultCurrency={trip?.homeCurrency || 'ILS'}
+                trip={trip}
+              />
               <div>
                 <Label htmlFor="duration">{t('form.duration')}</Label>
                 <Input id="duration" name="duration" placeholder={t('form.durationPlaceholder')} className="mt-1" />
@@ -257,6 +336,87 @@ export function Itinerary({ tripId }: { tripId: string }) {
               {addActivity.isPending ? t('action.adding') : t('itin.addActivity')}
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Accommodation Dialog */}
+      <Dialog open={!!showAddAccom} onOpenChange={() => setShowAddAccom(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('accom.addAccom')}</DialogTitle>
+          </DialogHeader>
+          {showAddAccom && (() => {
+            const day = days.find((d: any) => d.id === showAddAccom);
+            const checkInDate = day ? new Date(day.date).toISOString().split('T')[0] : '';
+            const checkOutDate = day ? (() => {
+              const d = new Date(day.date);
+              d.setDate(d.getDate() + 1);
+              return d.toISOString().split('T')[0];
+            })() : '';
+            return (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
+                  addAccommodation.mutate({
+                    tripId,
+                    name: fd.get('name'),
+                    type: fd.get('type') || 'hotel',
+                    checkIn: new Date(fd.get('checkIn') as string).toISOString(),
+                    checkOut: new Date(fd.get('checkOut') as string).toISOString(),
+                    pricePerNight: parseFloat(fd.get('pricePerNight') as string) || 0,
+                    totalCost: parseFloat(fd.get('totalCost') as string) || 0,
+                    currency: fd.get('currency') as string || trip?.homeCurrency || 'ILS',
+                    notes: fd.get('notes') || null,
+                  });
+                }}
+                className="space-y-4"
+              >
+                <div>
+                  <Label>{t('form.name')}</Label>
+                  <Input name="name" required autoFocus className="mt-1" placeholder="Hotel name..." />
+                </div>
+                <div>
+                  <Label>{t('form.type')}</Label>
+                  <select name="type" defaultValue="hotel" className="mt-1 flex h-10 w-full rounded-lg border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
+                    <option value="hotel">{t('accom.hotel')}</option>
+                    <option value="hostel">{t('accom.hostel')}</option>
+                    <option value="airbnb">{t('accom.airbnb')}</option>
+                    <option value="resort">{t('accom.resort')}</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>{t('form.checkIn')}</Label>
+                    <Input type="date" name="checkIn" defaultValue={checkInDate} required className="mt-1 num-ltr" />
+                  </div>
+                  <div>
+                    <Label>{t('form.checkOut')}</Label>
+                    <Input type="date" name="checkOut" defaultValue={checkOutDate} required className="mt-1 num-ltr" />
+                  </div>
+                </div>
+                <CurrencyField
+                  label={t('form.pricePerNight')}
+                  name="pricePerNight"
+                  currencyName="currency"
+                  defaultValue={0}
+                  defaultCurrency={trip?.homeCurrency || 'ILS'}
+                  trip={trip}
+                />
+                <CurrencyField
+                  label={t('form.totalCost')}
+                  name="totalCost"
+                  currencyName="totalCost_currency"
+                  defaultValue={0}
+                  defaultCurrency={trip?.homeCurrency || 'ILS'}
+                  trip={trip}
+                />
+                <Button type="submit" className="w-full" disabled={addAccommodation.isPending}>
+                  {addAccommodation.isPending ? t('action.saving') : t('accom.addStay')}
+                </Button>
+              </form>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

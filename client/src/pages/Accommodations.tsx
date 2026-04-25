@@ -10,7 +10,86 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
+import { CurrencyField } from '@/components/CurrencyField';
 import { Plus, Hotel, MapPin, Calendar, ExternalLink, Trash2, Edit, Star } from 'lucide-react';
+
+function AccomForm({ editing, trip, destinations, onSubmit, isPending, t }: any) {
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="name">{t('form.name')}</Label>
+        <Input id="name" name="name" required defaultValue={editing?.name} className="mt-1" autoFocus />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="type">{t('form.type')}</Label>
+          <select name="type" id="type" defaultValue={editing?.type || 'hotel'} className="mt-1 flex h-10 w-full rounded-lg border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
+            <option value="hotel">{t('accom.hotel')}</option>
+            <option value="hostel">{t('accom.hostel')}</option>
+            <option value="airbnb">{t('accom.airbnb')}</option>
+            <option value="resort">{t('accom.resort')}</option>
+          </select>
+        </div>
+        <div>
+          <Label htmlFor="destinationId">{t('form.city')}</Label>
+          <select name="destinationId" id="destinationId" defaultValue={editing?.destinationId || ''} className="mt-1 flex h-10 w-full rounded-lg border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
+            <option value="">{t('form.selectCity')}</option>
+            {destinations.map((d: any) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="checkIn">{t('form.checkIn')}</Label>
+          <Input type="date" id="checkIn" name="checkIn" required defaultValue={editing?.checkIn?.split('T')[0]} className="mt-1 num-ltr" />
+        </div>
+        <div>
+          <Label htmlFor="checkOut">{t('form.checkOut')}</Label>
+          <Input type="date" id="checkOut" name="checkOut" required defaultValue={editing?.checkOut?.split('T')[0]} className="mt-1 num-ltr" />
+        </div>
+      </div>
+      <CurrencyField
+        label={t('form.pricePerNight')}
+        name="pricePerNight"
+        currencyName="currency"
+        defaultValue={editing?.pricePerNight}
+        defaultCurrency={editing?.currency || trip?.homeCurrency || 'ILS'}
+        trip={trip}
+      />
+      <CurrencyField
+        label={t('form.totalCost')}
+        name="totalCost"
+        currencyName="totalCost_currency"
+        defaultValue={editing?.totalCost}
+        defaultCurrency={editing?.currency || trip?.homeCurrency || 'ILS'}
+        trip={trip}
+      />
+      <div>
+        <Label htmlFor="roomType">{t('form.roomType')}</Label>
+        <Input id="roomType" name="roomType" defaultValue={editing?.roomType} className="mt-1" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="bookingLink">{t('form.bookingLink')}</Label>
+          <Input id="bookingLink" name="bookingLink" type="url" defaultValue={editing?.bookingLink} className="mt-1" />
+        </div>
+        <div>
+          <Label htmlFor="confirmationCode">{t('form.confirmationCode')}</Label>
+          <Input id="confirmationCode" name="confirmationCode" defaultValue={editing?.confirmationCode} className="mt-1" />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="notes">{t('form.notes')}</Label>
+        <Textarea id="notes" name="notes" rows={2} defaultValue={editing?.notes} className="mt-1" />
+      </div>
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? t('action.saving') : editing ? t('action.update') : t('accom.addAccom')}
+      </Button>
+    </form>
+  );
+}
 
 export function Accommodations({ tripId }: { tripId: string }) {
   const { t } = useI18n();
@@ -173,8 +252,14 @@ export function Accommodations({ tripId }: { tripId: string }) {
           <DialogHeader>
             <DialogTitle>{editing ? t('accom.editAccom') : t('accom.addAccom')}</DialogTitle>
           </DialogHeader>
-          <form
-            onSubmit={(e) => {
+          <AccomForm
+            key={editing?.id || 'new'}
+            editing={editing}
+            trip={trip}
+            destinations={destinations}
+            isPending={createMutation.isPending}
+            t={t}
+            onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
               const data: any = {
@@ -186,7 +271,7 @@ export function Accommodations({ tripId }: { tripId: string }) {
                 checkOut: new Date(fd.get('checkOut') as string).toISOString(),
                 pricePerNight: parseFloat(fd.get('pricePerNight') as string) || 0,
                 totalCost: parseFloat(fd.get('totalCost') as string) || 0,
-                currency: fd.get('currency') || 'THB',
+                currency: fd.get('currency') as string || 'ILS',
                 roomType: fd.get('roomType') || null,
                 bookingLink: fd.get('bookingLink') || null,
                 confirmationCode: fd.get('confirmationCode') || null,
@@ -194,82 +279,7 @@ export function Accommodations({ tripId }: { tripId: string }) {
               };
               createMutation.mutate(data);
             }}
-            className="space-y-4"
-          >
-            <div>
-              <Label htmlFor="name">{t('form.name')}</Label>
-              <Input id="name" name="name" required defaultValue={editing?.name} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="type">{t('form.type')}</Label>
-                <select name="type" id="type" defaultValue={editing?.type || 'hotel'} className="flex h-10 w-full rounded-xl border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
-                  <option value="hotel">{t('accom.hotel')}</option>
-                  <option value="hostel">{t('accom.hostel')}</option>
-                  <option value="airbnb">{t('accom.airbnb')}</option>
-                  <option value="resort">{t('accom.resort')}</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="destinationId">{t('form.city')}</Label>
-                <select name="destinationId" id="destinationId" defaultValue={editing?.destinationId || ''} className="flex h-10 w-full rounded-xl border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
-                  <option value="">{t('form.selectCity')}</option>
-                  {destinations.map((d: any) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="checkIn">{t('form.checkIn')}</Label>
-                <Input type="date" id="checkIn" name="checkIn" required defaultValue={editing?.checkIn?.split('T')[0]} />
-              </div>
-              <div>
-                <Label htmlFor="checkOut">{t('form.checkOut')}</Label>
-                <Input type="date" id="checkOut" name="checkOut" required defaultValue={editing?.checkOut?.split('T')[0]} />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label htmlFor="pricePerNight">{t('form.pricePerNight')}</Label>
-                <Input type="number" id="pricePerNight" name="pricePerNight" defaultValue={editing?.pricePerNight || 0} />
-              </div>
-              <div>
-                <Label htmlFor="totalCost">{t('form.totalCost')}</Label>
-                <Input type="number" id="totalCost" name="totalCost" defaultValue={editing?.totalCost || 0} />
-              </div>
-              <div>
-                <Label htmlFor="currency">{t('form.currency')}</Label>
-                <select name="currency" id="currency" defaultValue={editing?.currency || 'THB'} className="flex h-10 w-full rounded-xl border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
-                  <option value="THB">THB</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="roomType">{t('form.roomType')}</Label>
-              <Input id="roomType" name="roomType" defaultValue={editing?.roomType} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="bookingLink">{t('form.bookingLink')}</Label>
-                <Input id="bookingLink" name="bookingLink" type="url" defaultValue={editing?.bookingLink} />
-              </div>
-              <div>
-                <Label htmlFor="confirmationCode">{t('form.confirmationCode')}</Label>
-                <Input id="confirmationCode" name="confirmationCode" defaultValue={editing?.confirmationCode} />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="notes">{t('form.notes')}</Label>
-              <Textarea id="notes" name="notes" rows={2} defaultValue={editing?.notes} />
-            </div>
-            <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-              {createMutation.isPending ? t('action.saving') : editing ? t('action.update') : t('accom.addAccom')}
-            </Button>
-          </form>
+          />
         </DialogContent>
       </Dialog>
     </div>

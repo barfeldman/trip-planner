@@ -15,6 +15,7 @@ model Trip {
   endDate       DateTime
   homeCurrency  String   @default("USD")
   exchangeRate  Float    @default(33.0) // THB per home currency
+  usdRate       Float    @default(3.7)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
