@@ -42,7 +42,12 @@ export function Dashboard({ tripId }: { tripId: string }) {
 
   const countdown = daysUntil(trip.startDate);
   const tripDays = daysBetween(trip.startDate, trip.endDate);
-  const destinations = trip.destinations || [];
+  const allDays: any[] = trip.days || [];
+  const destinations = [...(trip.destinations || [])].sort((a: any, b: any) => {
+    const aMin = Math.min(...allDays.filter((d) => d.destinationId === a.id).map((d) => d.dayNumber), Infinity);
+    const bMin = Math.min(...allDays.filter((d) => d.destinationId === b.id).map((d) => d.dayNumber), Infinity);
+    return aMin - bMin;
+  });
   const accommodations = trip.accommodations || [];
   const transports = trip.transports || [];
   const activities = trip.activities || [];
@@ -193,7 +198,8 @@ export function Dashboard({ tripId }: { tripId: string }) {
           <CardContent>
             <div className="space-y-0">
               {destinations.map((dest: any, i: number) => {
-                const destDays = trip.days?.filter((d: any) => d.destinationId === dest.id) || [];
+                const destDays = (trip.days?.filter((d: any) => d.destinationId === dest.id) || [])
+                  .sort((a: any, b: any) => a.dayNumber - b.dayNumber);
                 const destAccom = accommodations.find((a: any) => a.destinationId === dest.id);
                 return (
                   <div key={dest.id} className="flex gap-4">
