@@ -7,8 +7,9 @@ import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatCurrency, budgetCategoryColor } from '@/lib/utils';
+import { formatCurrency, budgetCategoryColor, convertToHome } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
+import { CurrencyField } from '@/components/CurrencyField';
 import { Plus, Wallet, TrendingUp, PieChart, Edit, Trash2 } from 'lucide-react';
 
 const CATEGORIES = ['flights', 'accommodation', 'food', 'transport', 'activities', 'shopping', 'emergency'];
@@ -21,6 +22,48 @@ const categoryEmoji: Record<string, string> = {
   shopping: '🛍️',
   emergency: '🚨',
 };
+
+function BudgetForm({ editing, trip, onSubmit, isPending, t }: any) {
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="description">{t('form.description')}</Label>
+        <Input id="description" name="description" required defaultValue={editing?.description} className="mt-1" autoFocus />
+      </div>
+      <div>
+        <Label htmlFor="category">{t('form.category')}</Label>
+        <select name="category" id="category" defaultValue={editing?.category || 'food'} className="mt-1 flex h-10 w-full rounded-lg border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>{categoryEmoji[c]} {c}</option>
+          ))}
+        </select>
+      </div>
+      <CurrencyField
+        label={t('form.plannedAmount')}
+        name="planned"
+        currencyName="currency"
+        defaultValue={editing?.planned}
+        defaultCurrency={editing?.currency || trip?.homeCurrency || 'ILS'}
+        trip={trip}
+      />
+      <CurrencyField
+        label={t('form.actualAmount')}
+        name="actual"
+        currencyName="actual_currency"
+        defaultValue={editing?.actual}
+        defaultCurrency={editing?.currency || trip?.homeCurrency || 'ILS'}
+        trip={trip}
+      />
+      <div>
+        <Label htmlFor="notes">{t('form.notes')}</Label>
+        <Input id="notes" name="notes" defaultValue={editing?.notes} className="mt-1" />
+      </div>
+      <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? t('action.saving') : editing ? t('action.update') : t('budget.addExpense')}
+      </Button>
+    </form>
+  );
+}
 
 export function Budget({ tripId }: { tripId: string }) {
   const { t } = useI18n();
@@ -166,8 +209,17 @@ export function Budget({ tripId }: { tripId: string }) {
                   <p className="text-xs text-[hsl(var(--muted-foreground))] capitalize">{item.category}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-medium num-ltr">{formatCurrency(item.actual || 0)} <span className="text-[hsl(var(--muted-foreground))]">{t('budget.actual')}</span></p>
-                  <p className="text-xs text-[hsl(var(--muted-foreground))] num-ltr">{formatCurrency(item.planned)} {t('dash.planned')}</p>
+                  <p className="text-sm font-medium num-ltr">
+                    {formatCurrency(item.actual || 0, item.currency)} <span className="text-[hsl(var(--muted-foreground))]">{t('budget.actual')}</span>
+                  </p>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))] num-ltr">
+                    {formatCurrency(item.planned, item.currency)} {t('dash.planned')}
+                  </p>
+                  {item.currency !== (trip?.homeCurrency || 'ILS') && (
+                    <p className="text-xs text-saffron-600 dark:text-saffron-400 num-ltr">
+                      ≈ {formatCurrency(convertToHome(item.planned, item.currency, trip), trip?.homeCurrency || 'ILS')}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon-sm" onClick={() => { setEditing(item); setShowForm(true); }}>
@@ -189,8 +241,13 @@ export function Budget({ tripId }: { tripId: string }) {
           <DialogHeader>
             <DialogTitle>{editing ? t('budget.editExpense') : t('budget.addExpense')}</DialogTitle>
           </DialogHeader>
-          <form
-            onSubmit={(e) => {
+          <BudgetForm
+            key={editing?.id || 'new'}
+            editing={editing}
+            trip={trip}
+            isPending={createMutation.isPending}
+            t={t}
+            onSubmit={(e: React.FormEvent<HTMLFormElement>) => {
               e.preventDefault();
               const fd = new FormData(e.currentTarget);
               createMutation.mutate({
@@ -199,52 +256,11 @@ export function Budget({ tripId }: { tripId: string }) {
                 description: fd.get('description'),
                 planned: parseFloat(fd.get('planned') as string) || 0,
                 actual: parseFloat(fd.get('actual') as string) || 0,
-                currency: fd.get('currency') || 'THB',
+                currency: fd.get('currency') as string || 'ILS',
                 notes: fd.get('notes') || null,
               });
             }}
-            className="space-y-4"
-          >
-            <div>
-              <Label htmlFor="description">{t('form.description')}</Label>
-              <Input id="description" name="description" required defaultValue={editing?.description} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="category">{t('form.category')}</Label>
-                <select name="category" id="category" defaultValue={editing?.category || 'food'} className="flex h-10 w-full rounded-xl border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{categoryEmoji[c]} {c}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="currency">{t('form.currency')}</Label>
-                <select name="currency" id="currency" defaultValue={editing?.currency || 'THB'} className="flex h-10 w-full rounded-xl border border-[hsl(var(--input))] bg-transparent px-3 py-2 text-sm">
-                  <option value="THB">THB</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="planned">{t('form.plannedAmount')}</Label>
-                <Input type="number" id="planned" name="planned" defaultValue={editing?.planned || 0} />
-              </div>
-              <div>
-                <Label htmlFor="actual">{t('form.actualAmount')}</Label>
-                <Input type="number" id="actual" name="actual" defaultValue={editing?.actual || 0} />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="notes">{t('form.notes')}</Label>
-              <Input id="notes" name="notes" defaultValue={editing?.notes} />
-            </div>
-            <Button type="submit" className="w-full" disabled={createMutation.isPending}>
-              {createMutation.isPending ? t('action.saving') : editing ? t('action.update') : t('budget.addExpense')}
-            </Button>
-          </form>
+          />
         </DialogContent>
       </Dialog>
     </div>
