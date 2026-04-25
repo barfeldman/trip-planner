@@ -73,3 +73,12 @@ export function budgetCategoryColor(category: string): string {
   };
   return colors[category] || 'bg-gray-500';
 }
+
+export function convertToHome(amount: number, currency: string, trip: any): number {
+  if (!amount) return 0;
+  const home = trip?.homeCurrency || 'ILS';
+  if (currency === home) return amount;
+  if (currency === 'THB') return amount / (trip?.exchangeRate || 8.5);
+  if (currency === 'USD') return amount * (trip?.usdRate || 3.7);
+  return amount;
+}

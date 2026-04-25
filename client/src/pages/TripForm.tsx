@@ -32,6 +32,7 @@ export function TripForm({ trip, onDone }: TripFormProps) {
   const [endDate, setEndDate] = useState(trip ? trip.endDate.slice(0, 10) : '');
   const [homeCurrency, setHomeCurrency] = useState(trip?.homeCurrency || 'ILS');
   const [exchangeRate, setExchangeRate] = useState(trip?.exchangeRate?.toString() || '');
+  const [usdRate, setUsdRate] = useState(trip?.usdRate?.toString() || '3.7');
   const [destinations, setDestinations] = useState<DestinationInput[]>(
     trip?.destinations?.map((d: any) => ({ name: d.name, country: d.country, lat: d.lat?.toString() || '', lng: d.lng?.toString() || '' })) || [{ name: '', country: '', lat: '', lng: '' }]
   );
@@ -45,6 +46,7 @@ export function TripForm({ trip, onDone }: TripFormProps) {
         endDate: new Date(data.endDate).toISOString(),
         homeCurrency: data.homeCurrency,
         exchangeRate: parseFloat(data.exchangeRate) || 1,
+        usdRate: parseFloat(data.usdRate) || 3.7,
       });
 
       // Create destinations
@@ -95,6 +97,7 @@ export function TripForm({ trip, onDone }: TripFormProps) {
         endDate: new Date(data.endDate).toISOString(),
         homeCurrency: data.homeCurrency,
         exchangeRate: parseFloat(data.exchangeRate) || 1,
+        usdRate: parseFloat(data.usdRate) || 3.7,
       });
     },
     onSuccess: () => {
@@ -122,7 +125,7 @@ export function TripForm({ trip, onDone }: TripFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const data = { name, description, startDate, endDate, homeCurrency, exchangeRate, destinations };
+    const data = { name, description, startDate, endDate, homeCurrency, exchangeRate, usdRate, destinations };
     if (isEditing) {
       updateTrip.mutate(data);
     } else {
@@ -223,6 +226,21 @@ export function TripForm({ trip, onDone }: TripFormProps) {
                     className="mt-1 num-ltr"
                   />
                   <p className="text-[11px] text-[hsl(var(--muted-foreground))] mt-1">{t('trip.exchangeHelp')}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="usdRate">1 USD = {homeCurrency || 'ILS'}</Label>
+                  <Input
+                    id="usdRate"
+                    type="number"
+                    step="0.01"
+                    value={usdRate}
+                    onChange={(e) => setUsdRate(e.target.value)}
+                    placeholder="3.7"
+                    className="mt-1 num-ltr"
+                  />
+                  <p className="text-[11px] text-[hsl(var(--muted-foreground))] mt-1">How many {homeCurrency || 'ILS'} per 1 USD</p>
                 </div>
               </div>
             </CardContent>
