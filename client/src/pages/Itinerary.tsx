@@ -13,12 +13,20 @@ import { useI18n } from '@/lib/i18n';
 import { CurrencyField } from '@/components/CurrencyField';
 import { Plus, GripVertical, Clock, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 
+const THAI_CITIES = [
+  'Bangkok', 'Chiang Mai', 'Phuket', 'Koh Samui', 'Krabi', 'Ayutthaya',
+  'Pai', 'Kanchanaburi', 'Hua Hin', 'Koh Phangan', 'Koh Tao', 'Chiang Rai',
+  'Sukhothai', 'Pattaya', 'Koh Chang', 'Koh Lanta', 'Railay Beach',
+  'Khao Sok', 'Koh Phi Phi', 'Mae Hong Son', 'Nakhon Ratchasima', 'Udon Thani',
+];
+
 export function Itinerary({ tripId }: { tripId: string }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [showAddActivity, setShowAddActivity] = useState<string | null>(null);
   const [showAddAccom, setShowAddAccom] = useState<string | null>(null);
+  const [addCityForDayId, setAddCityForDayId] = useState<string | null>(null);
 
   const { data: trip } = useQuery({
     queryKey: ['trip', tripId],
@@ -48,6 +56,23 @@ export function Itinerary({ tripId }: { tripId: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
       setShowAddAccom(null);
+    },
+  });
+
+  const createDestination = useMutation({
+    mutationFn: async ({ name, dayId }: { name: string; dayId: string }) => {
+      const dest = await api.createDestination({
+        tripId,
+        name,
+        country: 'Thailand',
+        sortOrder: destinations.length,
+      });
+      await api.updateDay(dayId, { destinationId: dest.id });
+      return dest;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
+      setAddCityForDayId(null);
     },
   });
 
@@ -147,18 +172,23 @@ export function Itinerary({ tripId }: { tripId: string }) {
                     </button>
 
                     {/* City selector */}
-                    {destinations.length > 0 && (
-                      <select
-                        value={day.destinationId || ''}
-                        onChange={(e) => updateDay.mutate({ id: day.id, data: { destinationId: e.target.value || null } })}
-                        className="h-8 rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-2 text-xs cursor-pointer max-w-[120px]"
-                      >
-                        <option value="">{t('form.selectCity')}</option>
-                        {destinations.map((dest: any) => (
-                          <option key={dest.id} value={dest.id}>{dest.name}</option>
-                        ))}
-                      </select>
-                    )}
+                    <select
+                      value={day.destinationId || ''}
+                      onChange={(e) => {
+                        if (e.target.value === '__add__') {
+                          setAddCityForDayId(day.id);
+                          return;
+                        }
+                        updateDay.mutate({ id: day.id, data: { destinationId: e.target.value || null } });
+                      }}
+                      className="h-8 rounded-lg border border-[hsl(var(--input))] bg-[hsl(var(--background))] px-2 text-xs cursor-pointer max-w-[130px]"
+                    >
+                      <option value="">{t('form.selectCity')}</option>
+                      {destinations.map((dest: any) => (
+                        <option key={dest.id} value={dest.id}>{dest.name}</option>
+                      ))}
+                      <option value="__add__">+ Add city...</option>
+                    </select>
 
                     {dayActivities.length > 0 && (
                       <Badge variant="outline" className="text-[10px] flex-shrink-0">
@@ -417,6 +447,50 @@ export function Itinerary({ tripId }: { tripId: string }) {
               </form>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add City Dialog */}
+      <Dialog open={!!addCityForDayId} onOpenChange={() => setAddCityForDayId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add City</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              const name = (fd.get('cityName') as string)?.trim();
+              if (name && addCityForDayId) {
+                createDestination.mutate({ name, dayId: addCityForDayId });
+              }
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <Label htmlFor="cityName">City Name</Label>
+              <Input
+                id="cityName"
+                name="cityName"
+                list="thai-cities-list"
+                required
+                autoFocus
+                placeholder="e.g. Bangkok"
+                className="mt-1"
+              />
+              <datalist id="thai-cities-list">
+                {THAI_CITIES.map((city) => (
+                  <option key={city} value={city} />
+                ))}
+              </datalist>
+              <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">
+                Type or pick from the list — Bangkok, Chiang Mai, Phuket, Koh Samui…
+              </p>
+            </div>
+            <Button type="submit" className="w-full" disabled={createDestination.isPending}>
+              {createDestination.isPending ? 'Adding...' : 'Add City'}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
